@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contract Export Formatter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cascadia+Code&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<style>
+/* ══════════════════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #070b14;
+  --surface:   #0d1526;
+  --surface2:  #111d32;
+  --surface3:  #172340;
+  --border:    #1e2e4a;
+  --border2:   #253858;
+  --text:      #dde8f8;
+  --text2:     #8da4c8;
+  --muted:     #4e6490;
+  --accent:    #4f9cf9;
+  --accent2:   #3b82f6;
+  --purple:    #a78bfa;
+  --purple2:   #7c3aed;
+  --green:     #10b981;
+  --green2:    #059669;
+  --yellow:    #f59e0b;
+  --red:       #ef4444;
+  --iron:      #4f9cf9;
+  --zy:        #a78bfa;
+  --radius:    10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.5);
+  --shadow-md: 0 6px 24px rgba(0,0,0,0.6);
+  --glow-blue:   0 0 20px rgba(79,156,249,0.18);
+  --glow-purple: 0 0 20px rgba(167,139,250,0.18);
+}
+
+html { font-size: 15px; }
+
+body {
+  font-family: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.app-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 28px 100px;
+}
+
+/* ── Header ── */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 32px 0 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+  animation: slideDown 0.55s ease;
+}
+.logo-mark {
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, rgba(79,156,249,0.12), rgba(167,139,250,0.12));
+  border: 1px solid rgba(79,156,249,0.3);
+  border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--glow-blue);
+}
+.logo-mark svg rect { animation: logoPulse 4s ease-in-out infinite; }
+@keyframes logoPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.65; } }
+
+.header-text { flex: 1; min-width: 0; }
+.header-text h1 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  background: linear-gradient(100deg, #93c5fd 0%, #c084fc 45%, #67e8f9 80%, #818cf8 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s linear infinite;
+}
+@keyframes gradientShift { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+.header-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+  display: block;
+  margin-top: 3px;
+}
+.header-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.header-tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(79,156,249,0.1);
+  border: 1px solid rgba(79,156,249,0.22);
+  color: var(--accent);
+}
+.header-tag.tag-purple { background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.22); color: var(--purple); }
+.header-tag.tag-green  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); color: var(--green); }
+
+.header-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.22);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+.pulse-dot {
+  width: 7px; height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulseDot 2.2s ease infinite;
+}
+@keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); } 50% { box-shadow: 0 0 0 5px rgba(16,185,129,0); } }
+.header-badge.badge-processing { background: rgba(79,156,249,0.1); border-color: rgba(79,156,249,0.3); color: var(--accent); }
+.header-badge.badge-processing .pulse-dot { background: var(--accent); animation: pulseDotBlue 0.8s ease infinite; }
+@keyframes pulseDotBlue { 0%,100% { box-shadow: 0 0 0 0 rgba(79,156,249,0.55); } 50% { box-shadow: 0 0 0 5px rgba(79,156,249,0); } }
+.header-badge.badge-done .pulse-dot { background: var(--green); animation: none; }
+.header-badge.badge-error { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: var(--red); }
+.header-badge.badge-error .pulse-dot { background: var(--red); animation: none; }
+
+.theme-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); background: rgba(96,165,250,0.1); }
+
+/* ── Section title ── */
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+.chip {
+  font-size: 10.5px;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 2px 10px;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+/* ── Upload section ── */
+.upload-section { animation: fadeUp 0.45s ease 0.12s both; margin-bottom: 8px; }
+.upload-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.drop-zone {
+  position: relative;
+  border: 1.5px dashed rgba(79,156,249,0.22);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-height: 150px;
+  justify-content: center;
+  overflow: hidden;
+}
+.drop-zone-glow {
+  position: absolute;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  bottom: -40px;
+  right: -30px;
+  background: #4f9cf9;
+}
+.drop-zone:hover .drop-zone-glow, .drop-zone.drag-over .drop-zone-glow { opacity: 0.18; }
+.drop-zone.loaded .drop-zone-glow { background: #10b981; opacity: 0.15; }
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  border-style: solid;
+  background: rgba(13,22,48,0.85);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(79,156,249,0.18);
+}
+.drop-zone.loaded {
+  border-style: solid;
+  border-color: var(--green);
+  background: rgba(16,185,129,0.05);
+  box-shadow: 0 4px 20px rgba(16,185,129,0.12);
+}
+.drop-icon { animation: float 3.5s ease-in-out infinite; color: var(--accent); }
+.drop-zone.loaded .drop-icon { color: var(--green); }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.drop-label strong { display: block; font-size: 14px; font-weight: 700; margin-bottom: 2px; color: var(--text); letter-spacing: -0.1px; }
+.drop-label span { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+.file-status {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface2);
+  border-radius: 20px;
+  padding: 3px 12px;
+  border: 1px solid var(--border);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-status.ready { color: var(--green); border-color: rgba(16,185,129,0.35); background: rgba(16,185,129,0.08); }
+
+/* ── Action bar ── */
+.action-bar { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
+.btn-primary, .btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 28px;
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.btn-primary { background: linear-gradient(135deg, #3b82f6, #7c3aed); color: #fff; box-shadow: 0 4px 18px rgba(59,130,246,0.3); }
+.btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(59,130,246,0.45); filter: brightness(1.1); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.btn-clear {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 20px;
+  border-radius: var(--radius);
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+  border: 1px solid rgba(239,68,68,0.3);
+  background: rgba(239,68,68,0.06);
+  color: #f87171;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.btn-clear:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.55); transform: translateY(-1px); }
+
+/* ── Progress ── */
+.progress-wrap {
+  margin: 24px 0 0;
+  animation: fadeUp 0.3s ease;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.progress-label { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+.progress-bar-track { width: 100%; height: 5px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
+.progress-bar-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, #3b82f6, #7c3aed, #10b981);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+  position: relative;
+}
+.progress-bar-fill::after {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 60px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer { 0% { transform: translateX(-60px); } 100% { transform: translateX(60px); } }
+
+/* ── Stats ── */
+.stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 28px 0; animation: fadeUp 0.4s ease; }
+.stat-card {
+  background: rgba(6,12,30,0.82);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 16px;
+  display: flex; flex-direction: column; gap: 5px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent2), var(--purple2)); opacity: 0.5; transition: opacity 0.2s; }
+.stat-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); background: var(--surface2); }
+.stat-card:hover::before { opacity: 1; }
+.stat-val { font-size: 30px; font-weight: 800; color: var(--accent); line-height: 1.1; letter-spacing: -1px; }
+.stat-val-green { color: var(--green) !important; }
+.stat-key { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 500; }
+
+/* ── Log panel ── */
+.log-panel {
+  margin-top: 32px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.log-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.log-clear {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  color: var(--muted); font-size: 11px; padding: 2px 10px; cursor: pointer;
+  transition: border-color 0.18s, color 0.18s; font-family: inherit;
+}
+.log-clear:hover { border-color: var(--accent); color: var(--accent); }
+.log-body {
+  padding: 12px 16px;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.9;
+}
+.log-entry { display: block; }
+.log-entry.info span { color: var(--accent); }
+.log-entry.ok   span { color: var(--green); }
+.log-entry.warn span { color: var(--yellow); }
+.log-entry.err  span { color: var(--red); }
+.log-time { color: #4a5568; margin-right: 10px; }
+
+/* ── Footer ── */
+.app-footer {
+  text-align: center;
+  padding: 24px 0 8px;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+  letter-spacing: 0.2px;
+  line-height: 1.8;
+}
+.footer-sep { margin: 0 8px; opacity: 0.4; }
+
+/* ── Sheet map ── */
+.sheet-map {
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.sheet-map-row { display: flex; align-items: center; gap: 8px; }
+.sheet-map-row .from { color: var(--muted); }
+.sheet-map-row .arrow { color: var(--border2); }
+.sheet-map-row .to { color: var(--accent); font-weight: 600; }
+
+/* ── Animations ── */
+@keyframes slideDown { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Light mode ── */
+body.light {
+  --bg: #e8f0fc; --surface: rgba(220,232,255,0.7); --surface2: rgba(200,218,255,0.6); --surface3: rgba(180,204,255,0.5);
+  --border: rgba(99,155,255,0.25); --border2: rgba(99,155,255,0.45); --text: #0a0f2e; --text2: #1e2d6e; --muted: #5060a0;
+  --accent: #0057ff; --accent2: #003ecc; --purple: #7c3aed; --purple2: #6d28d9; --green: #00b87a; --yellow: #e6a700; --red: #e8334a;
+}
+
+body.light .drop-zone:hover,
+body.light .drop-zone.drag-over {
+  background: rgba(190,210,255,0.65);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(0,87,255,0.2);
+}
+body.light .drop-zone.loaded {
+  border-color: var(--green);
+  background: rgba(200,245,230,0.6);
+  box-shadow: 0 4px 20px rgba(0,184,122,0.18);
+}
+
+/* ── Stat cards ── */
+body.light .stat-card {
+  background: rgba(210,225,255,0.5);
+  border-color: var(--border2);
+}
+body.light .stat-card:hover {
+  background: rgba(190,210,255,0.65);
+  border-color: var(--accent);
+  box-shadow: 0 0 22px rgba(0,87,255,0.18);
+}
+body.light .stat-card::before {
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  opacity: 0.8;
+}
+body.light .stat-val   { color: var(--accent); }
+body.light .stat-val-green { color: var(--green) !important; }
+body.light .stat-key   { color: var(--muted); }
+
+/* ── Section title ── */
+body.light .section-title { color: var(--text); }
+
+/* ── Log panel ── */
+body.light .log-panel {
+  background: rgba(210,225,255,0.5);
+  border-color: var(--border2);
+}
+body.light .log-header { background: rgba(190,210,255,0.7); border-color: var(--border2); color: var(--muted); }
+body.light .log-body   { color: var(--text2); }
+body.light .log-time   { color: var(--muted); }
+body.light .log-clear  { border-color: var(--border); color: var(--muted); }
+body.light .log-clear:hover { border-color: var(--accent); color: var(--accent); }
+body.light .log-entry.info span { color: var(--accent); }
+body.light .log-entry.ok   span { color: var(--green); }
+body.light .log-entry.warn span { color: var(--yellow); }
+body.light .log-entry.err  span { color: var(--red); }
+
+/* ── Footer ── */
+body.light .app-footer { color: var(--muted); border-color: var(--border); }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .app-shell { padding: 0 16px 80px; }
+  .upload-grid-4 { grid-template-columns: 1fr; }
+  .stats-strip { grid-template-columns: repeat(2, 1fr); }
+  .action-bar { flex-direction: column; align-items: stretch; }
+  .header-text h1 { font-size: 18px; }
+}
+</style>
+</head>
+<body class="light">
+<div class="app-shell">
+
+  <header class="app-header">
+    <div class="logo-mark">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="3" width="16" height="18" rx="2" stroke="#4f9cf9" stroke-width="1.6"/>
+        <rect x="7" y="7" width="10" height="1.6" fill="#4f9cf9"/>
+        <rect x="7" y="10.5" width="10" height="1.6" fill="#a78bfa"/>
+        <rect x="7" y="14" width="6" height="1.6" fill="#4f9cf9"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>Contract Export Formatter</h1>
+      <span class="header-sub">Merges the 4 Power BI contract exports into one formatted workbook</span>
+      <div class="header-tags">
+        <span class="header-tag">Power BI</span>
+        <span class="header-tag tag-purple">Excel Output</span>
+        <span class="header-tag tag-green">Dropdown Validation</span>
+      </div>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+      <svg id="theme-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+    <div class="header-badge" id="status-badge">
+      <span class="pulse-dot"></span>
+      <span id="status-text">Ready</span>
+    </div>
+  </header>
+
+  <section class="upload-section">
+    <div class="section-title">Upload Power BI exports <span class="chip">4 files</span></div>
+
+    <div class="sheet-map">
+      <div class="sheet-map-row"><span class="from">Contract Data</span><span class="arrow">→</span><span class="to">Contract Data</span></div>
+      <div class="sheet-map-row"><span class="from">Inactive Contract owners</span><span class="arrow">→</span><span class="to">Inactive owners per contract</span></div>
+      <div class="sheet-map-row"><span class="from">Inactive Contract owners per contract</span><span class="arrow">→</span><span class="to">Inactive owners</span></div>
+      <div class="sheet-map-row"><span class="from">Actionable error</span><span class="arrow">→</span><span class="to">Validation</span></div>
+      <div class="sheet-map-row"><span class="from">Contract Data</span><span class="arrow">→</span><span class="to">Inactiv Prnt Activ amendmt</span></div>
+    </div>
+
+    <div class="upload-grid-4" id="upload-grid"></div>
+
+    <div class="action-bar">
+      <button class="btn-primary" id="btn-generate" disabled>Generate workbook</button>
+      <button class="btn-clear" id="btn-clear">Clear all</button>
+    </div>
+
+    <div class="progress-wrap" id="progress-wrap" style="display:none">
+      <div class="progress-label" id="progress-label">Processing…</div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill"></div></div>
+    </div>
+  </section>
+
+  <section id="results-section" style="display:none">
+    <div class="section-title">Output summary</div>
+    <div class="stats-strip" id="stats-strip"></div>
+  </section>
+
+  <div class="log-panel">
+    <div class="log-header">Activity log <button class="log-clear" id="log-clear">Clear</button></div>
+    <div class="log-body" id="log-body"></div>
+  </div>
+
+  <footer class="app-footer">
+    Runs entirely in your browser — files never leave this device
+    <span class="footer-sep">•</span>
+    Sheet order: Contract Data · Inactive Contract owners · Inactive Contract owners per contract · Validation
+  </footer>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════ */
+const SLOTS = [
+  { key: 'contractData',  sheetName: 'Contract Data',                          label: 'Contract Data',                          from: 'Power BI export: Contract Data' },
+  { key: 'inactiveOwners', sheetName: 'Inactive owners per contract',          label: 'Inactive owners per contract',           from: 'Power BI export: Inactive Contract owners' },
+  { key: 'inactivePerContract', sheetName: 'Inactive owners',                  label: 'Inactive owners',                        from: 'Power BI export: Inactive Contract owners per contract' },
+  { key: 'validation',    sheetName: 'Validation',                             label: 'Validation',                             from: 'Power BI export: Actionable error' }
+];
+
+const CURRENCIES_RAW = `EUR
+USD
+AED
+AFN
+ALL
+AMD
+ANG
+AOA
+ARS
+AUD
+AWG
+AZN
+BAM
+BBD
+BDT
+BGN
+BHD
+BIF
+BMD
+BND
+BOB
+BOV
+BRL
+BSD
+BTN
+BWP
+BYR
+BZD
+CAD
+CDF
+CHF
+CLP
+CNH
+CNY
+COP
+COU
+CRC
+CUC
+CVE
+CZK
+DJF
+DKK
+DOP
+EGP
+ERN
+ETB
+FJD
+FKP
+GBP
+GEL
+GHS
+GIP
+GMD
+GNF
+GTQ
+GYD
+HKD
+HNL
+HRK
+HTG
+HUF
+IDR
+ILS
+INR
+IQD
+IRR
+ISK
+JMD
+JOD
+JPY
+KES
+KGS
+KHR
+KMF
+KPW
+KRW
+KWD
+KYD
+KZT
+LAK
+LBP
+LKR
+LRD
+LSL
+LTL
+LVL
+LYD
+MAD
+MDL
+MGA
+MKD
+MMK
+MNT
+MOP
+MRO
+MUR
+MVR
+MWK
+MXN
+MYR
+MZN
+NAD
+NGN
+NIO
+NOK
+NPR
+NZD
+OMR
+PAB
+PEN
+PGK
+PHP
+PKR
+PLN
+PYG
+QAR
+RON
+RSD
+RUB
+RWF
+SAR
+SBD
+SCR
+SDG
+SEK
+SGD
+SHP
+SLL
+SOS
+SRD
+SSP
+STD
+SYP
+SZL
+THB
+TJS
+TMT
+TND
+TOP
+TRY
+TTD
+TWD
+TZS
+UAH
+UGX
+UYU
+UZS
+VEF
+VND
+VUV
+WST
+XCD
+XPF
+XPT
+YER
+ZAR
+ZWL
+ZMW
+X`;
+
+const PAYMENT_TERMS_RAW = `V000, Pay immediately
+V001, Payment within 1 day
+V002, Payment within 7 days
+V003, Payment within 8 days
+V004, Payment within 10 days
+V006, Payment within 14 days
+V009, Payment within 15 days
+V011, Payment within 21 days
+V012, Payment within 28 days
+V013, Payment within 30 days
+V016, Payment within 35 days
+V017, Payment within 40 days
+V018, Payment within 45 days
+V019, Payment within 50 days
+V021, Payment within 60 days
+V022, Payment within 65 days
+V023, Payment within 70 days
+V024, Payment within 75 days
+V025, Payment within 90 days
+V026, Payment within 105 days
+V027, Payment within 120 days
+V028, Payment Monthly / Fixed on 15th
+V029, Payment within 80 days
+V030, Payment within 55 days
+V031, Payment within 30 days after month end
+V032, Payment within 45 days after month end
+V033, Payment within 60 days after month end
+V034, Payment within 90 days after month end
+V036, Payment within 135 days
+V037, Payment within 150 days
+V038, Payment within 180 days
+V039, Payment within 165 days
+V040, Payment within 120 days after month end
+V041, Payment within 75 days after month end
+V042, Payment 105 days after month end
+V043, Payment within 195 days
+V044, Payment within 210 days
+V045, Payment within 225 days
+V046, Payment within 240 days
+V047, Payment within 85 days
+V048, Payment within 95 days
+V049, Payment within 100 days
+V050, Payment within 110 days
+V051, Payment within 115 days
+V052, Payment within 125 days
+V053, Payment within 130 days
+V054, Payment within 140 days
+V055, Payment within 145 days
+V056, Payment within 155 days
+V057, Payment within 160 days
+V058, Payment within 170 days
+V059, Payment within 175 days
+V060, Payment within 270 days
+V061, Payment within 300 days
+V062, Payment within 250 days
+V063, Payment within 165 days after month end
+V064, Payment within 135 days after month end
+V065, Payment within 150 days after month end
+V066, Payment within 180 days after month end
+V067, Payment within 210 days after month end
+V068, Payment within 240 days after month end
+V069, 30 days end of month, payment on the 5th day of next month
+V070, 45 days end of month, payment on the 5th day of next month
+V071, 60 days end of month, payment on the 5th day of next month
+V072, 75 days end of month, payment on the 5th day of next month
+V073, 90 days end of month, payment on the 5th day of next month
+V074, 105 days end of month, payment on the 5th day of next month
+V075, 120 days end of month, payment on the 5th day of next month
+V076, 135 days end of month, payment on the 5th day of next month
+V077, 150 days end of month, payment on the 5th day of next month
+V078, 165 days end of month, payment on the 5th day of next month
+V079, 180 days end of month, payment on the 5th day of next month
+V080, 195 days end of month, payment on the 5th day of next month
+V081, 210 days end of month, payment on the 5th day of next month
+V082, 225 days end of month, payment on the 5th day of next month
+V083, 240 days end of month, payment on the 5th day of next month
+X`;
+
+const CURRENCIES = CURRENCIES_RAW.split('\n').map(s => s.trim()).filter(Boolean);
+const PAYMENT_TERMS = PAYMENT_TERMS_RAW.split('\n').map(s => s.trim()).filter(Boolean);
+
+const VALIDATION_DROPDOWN_COLUMNS = {
+  'currency - multiple':   { list: 'CURRENCIES',     sheetCol: 'A' },
+  'payment terms - blanks':   { list: 'PAYMENT_TERMS', sheetCol: 'B' },
+  'payment terms - multiple': { list: 'PAYMENT_TERMS', sheetCol: 'B' }
+};
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+const state = { files: {} };
+
+/* ══════════════════════════════════════════════════════
+   LOGGING / STATUS
+══════════════════════════════════════════════════════ */
+const logBody = document.getElementById('log-body');
+function log(msg, type = 'info') {
+  const row = document.createElement('span');
+  row.className = 'log-entry ' + type;
+  const time = new Date().toLocaleTimeString([], { hour12: false });
+  row.innerHTML = `<span class="log-time">${time}</span><span>${msg}</span>`;
+  logBody.appendChild(row);
+  logBody.scrollTop = logBody.scrollHeight;
+}
+document.getElementById('log-clear').addEventListener('click', () => { logBody.innerHTML = ''; });
+
+const statusBadge = document.getElementById('status-badge');
+const statusText = document.getElementById('status-text');
+function setStatus(mode, text) {
+  statusBadge.className = 'header-badge' + (mode ? ' badge-' + mode : '');
+  statusText.textContent = text;
+}
+
+/* ══════════════════════════════════════════════════════
+   THEME TOGGLE (in-memory only)
+══════════════════════════════════════════════════════ */
+function syncThemeIcon() {
+  const isLight = document.body.classList.contains('light');
+  document.getElementById('theme-icon').innerHTML = isLight
+    ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+    : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+}
+syncThemeIcon();
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  syncThemeIcon();
+});
+
+/* ══════════════════════════════════════════════════════
+   BUILD UPLOAD ZONES
+══════════════════════════════════════════════════════ */
+const grid = document.getElementById('upload-grid');
+SLOTS.forEach(slot => {
+  const zone = document.createElement('div');
+  zone.className = 'drop-zone';
+  zone.id = 'drop-' + slot.key;
+  zone.innerHTML = `
+    <div class="drop-zone-glow"></div>
+    <svg class="drop-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+    </svg>
+    <div class="drop-label">
+      <strong>${slot.label}</strong>
+      <span>${slot.from}</span>
+    </div>
+    <span class="file-status" id="status-${slot.key}">No file selected</span>
+    <input type="file" id="input-${slot.key}" accept=".xlsx,.xls,.csv" style="display:none">
+  `;
+  grid.appendChild(zone);
+
+  const input = zone.querySelector('input');
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0], slot); });
+
+  ['dragover', 'dragenter'].forEach(evt => zone.addEventListener(evt, e => {
+    e.preventDefault(); zone.classList.add('drag-over');
+  }));
+  ['dragleave', 'dragend'].forEach(evt => zone.addEventListener(evt, () => zone.classList.remove('drag-over')));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0], slot);
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   FILE HANDLING
+══════════════════════════════════════════════════════ */
+function handleFile(file, slot) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', raw: true });
+      const firstSheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[firstSheetName];
+      let aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+      // trim fully-empty trailing rows and Power BI "Applied filters:" footer rows
+      while (aoa.length && aoa[aoa.length - 1].every(c => c === '' || c === null || c === undefined)) aoa.pop();
+      while (aoa.length && String(aoa[aoa.length - 1][0] ?? '').trim().startsWith('Applied filters:')) aoa.pop();
+      while (aoa.length && aoa[aoa.length - 1].every(c => c === '' || c === null || c === undefined)) aoa.pop();
+
+      state.files[slot.key] = { fileName: file.name, aoa };
+
+      const zone = document.getElementById('drop-' + slot.key);
+      const statusEl = document.getElementById('status-' + slot.key);
+      zone.classList.add('loaded');
+      statusEl.classList.add('ready');
+      const rowCount = Math.max(aoa.length - 1, 0);
+      statusEl.textContent = `${file.name} · ${rowCount} row${rowCount === 1 ? '' : 's'}`;
+
+      log(`Loaded "${file.name}" for <span>${slot.sheetName}</span> — ${rowCount} data rows`, 'ok');
+      updateGenerateButton();
+    } catch (err) {
+      log(`Failed to read "${file.name}": ${err.message}`, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function updateGenerateButton() {
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = Object.keys(state.files).length === 0;
+}
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  state.files = {};
+  SLOTS.forEach(slot => {
+    const zone = document.getElementById('drop-' + slot.key);
+    const statusEl = document.getElementById('status-' + slot.key);
+    const input = document.getElementById('input-' + slot.key);
+    zone.classList.remove('loaded');
+    statusEl.classList.remove('ready');
+    statusEl.textContent = 'No file selected';
+    input.value = '';
+  });
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'none';
+  updateGenerateButton();
+  setStatus('', 'Ready');
+  log('Cleared all uploaded files', 'warn');
+});
+
+/* ══════════════════════════════════════════════════════
+   WORKBOOK GENERATION
+══════════════════════════════════════════════════════ */
+const progressWrap = document.getElementById('progress-wrap');
+const progressFill = document.getElementById('progress-fill');
+const progressLabel = document.getElementById('progress-label');
+
+function setProgress(pct, label) {
+  progressFill.style.width = pct + '%';
+  if (label) progressLabel.textContent = label;
+}
+
+function colWidthFromAoa(aoa, colIndex) {
+  let max = 10;
+  for (const row of aoa) {
+    const v = row[colIndex];
+    if (v === null || v === undefined) continue;
+    const len = String(v).length;
+    if (len > max) max = len;
+  }
+  return Math.min(max + 2, 45);
+}
+
+function styleHeaderRow(ws) {
+  const row = ws.getRow(1);
+  row.font = { bold: true, color: { argb: 'FFDDE8F8' } };
+  row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF111D32' } };
+  row.eachCell(cell => {
+    cell.border = { bottom: { style: 'thin', color: { argb: 'FF1E2E4A' } } };
+  });
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+}
+
+async function generateWorkbook() {
+  document.getElementById('btn-generate').disabled = true;
+  setStatus('processing', 'Processing…');
+  progressWrap.style.display = 'block';
+  document.getElementById('results-section').style.display = 'none';
+  setProgress(5, 'Setting up workbook…');
+  log('Starting workbook generation', 'info');
+  await new Promise(r => setTimeout(r, 150));
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Contract Export Formatter';
+  workbook.created = new Date();
+
+  let totalRows = 0;
+  let dropdownCells = 0;
+  let step = 0;
+
+  for (let si = 0; si < SLOTS.length; si++) {
+    const slot = SLOTS[si];
+    step++;
+    setProgress(5 + step * 15, `Building sheet: ${slot.sheetName}…`);
+    await new Promise(r => setTimeout(r, 120));
+
+    const ws = workbook.addWorksheet(slot.sheetName, { state: 'visible', position: { type: 'end' } });
+    const fileData = state.files[slot.key];
+
+    if (!fileData) {
+      ws.addRow(['No file uploaded for this export']);
+      ws.getRow(1).font = { italic: true, color: { argb: 'FF8DA4C8' } };
+      log(`No file supplied for <span>${slot.sheetName}</span> — sheet added with a placeholder note`, 'warn');
+      continue;
+    }
+
+    let aoa = fileData.aoa;
+
+    // Special processing for the Validation sheet
+    if (slot.key === 'validation' && aoa.length > 0) {
+      aoa = buildValidationAoa(aoa, state.files['contractData'] ? state.files['contractData'].aoa : null);
+    }
+
+    ws.addRows(aoa);
+    styleHeaderRow(ws);
+
+    const headerRow = aoa[0] || [];
+    headerRow.forEach((h, i) => { ws.getColumn(i + 1).width = colWidthFromAoa(aoa, i); });
+
+    if (headerRow.length > 0) {
+      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: aoa.length, column: headerRow.length } };
+    }
+
+    totalRows += Math.max(aoa.length - 1, 0);
+    log(`Added <span>${slot.sheetName}</span> — ${Math.max(aoa.length - 1, 0)} rows, ${headerRow.length} columns`, 'ok');
+
+    if (slot.key === 'validation') {
+      dropdownCells += applyValidationDropdowns(workbook, ws, headerRow, aoa.length);
+    }
+  }
+
+  // Build the "Inactiv Prnt Activ amendmt" sheet from Contract Data
+  setProgress(82, 'Building Inactiv Prnt Activ amendmt sheet…');
+  await new Promise(r => setTimeout(r, 120));
+  const contractAoa = state.files['contractData'] ? state.files['contractData'].aoa : null;
+  const amendSheetRows = buildInactivParentActiveAmendSheet(workbook, contractAoa);
+  totalRows += amendSheetRows;
+
+  setProgress(88, 'Finalizing workbook…');
+  await new Promise(r => setTimeout(r, 150));
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const sizeKB = (blob.size / 1024).toFixed(1);
+
+  setProgress(100, 'Done');
+  const ts = new Date().toISOString().slice(0, 10);
+  const fileName = `Contract_Data_Formatted_${ts}.xlsx`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  log(`Workbook generated: <span>${fileName}</span> (${sizeKB} KB)`, 'ok');
+  setStatus('done', 'Complete');
+  showStats(totalRows, dropdownCells, sizeKB);
+
+  setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
+  document.getElementById('btn-generate').disabled = false;
+}
+
+/* ══════════════════════════════════════════════════════
+   VALIDATION SHEET BUILDER
+   - Enforces the required 19-column order
+   - Removes is_Amendment
+   - Fills Vendor / Category Group / Category from Contract Data
+══════════════════════════════════════════════════════ */
+function buildValidationAoa(validationAoa, contractAoa) {
+  // The exact 19-column output order required
+  const REQUIRED_HEADERS = [
+    'ID',
+    'Zycus Contract Number',
+    'Contract Owner Email',
+    'OpCo Legal Entity',
+    'Contract Status',
+    'Currency - Multiple',
+    'Payment Terms - Blanks',
+    'Payment Terms - Multiple',
+    'Contract Expiry Date - Blanks',
+    'Contract Owner - Inactive',
+    'Contracting Party Name - Blanks Active',
+    'Contracting Party Name - ZZ Active',
+    'Operational ID - Blanks Active',
+    'Contact Details Address - Blanks Active',
+    'Contact Details City - Blanks Active',
+    'Contact Details Country - Blanks Active',
+    'Vendor',
+    'Category Group',
+    'Category'
+  ];
+
+  const norm = v => String(v ?? '').trim().toLowerCase();
+
+  // --- Build lookup from Contract Data: Zycus Contract Number -> { vendor, categoryGroup, category } ---
+  // Contract Data columns we need: Zycus Contract Number, Counterparty Name, Category Group, Contract Category
+  const lookup = new Map(); // key: normalised zycus contract number, value: { vendor, categoryGroup, category }
+  if (contractAoa && contractAoa.length > 1) {
+    const cdHeaders = contractAoa[0].map(h => norm(h));
+    const cdColZycus    = cdHeaders.findIndex(h => h === 'zycus contract number');
+    const cdColVendor   = cdHeaders.findIndex(h => h === 'counterparty name');
+    const cdColCatGroup = cdHeaders.findIndex(h => h === 'category group');
+    const cdColCat      = cdHeaders.findIndex(h => h === 'contract category');
+
+    if (cdColZycus === -1) {
+      log('Validation enrichment: "Zycus Contract Number" not found in Contract Data — Vendor/Category Group/Category will be blank', 'warn');
+    } else {
+      for (let i = 1; i < contractAoa.length; i++) {
+        const r = contractAoa[i];
+        const key = norm(r[cdColZycus]);
+        if (!key) continue;
+        // Only store first match per contract number (parent preferred — is_amendment=0)
+        if (!lookup.has(key)) {
+          lookup.set(key, {
+            vendor:        cdColVendor   !== -1 ? (r[cdColVendor]   ?? '') : '',
+            categoryGroup: cdColCatGroup !== -1 ? (r[cdColCatGroup] ?? '') : '',
+            category:      cdColCat      !== -1 ? (r[cdColCat]      ?? '') : ''
+          });
+        }
+      }
+      log(`Validation enrichment: built lookup from ${lookup.size} Contract Data rows`, 'info');
+    }
+  } else {
+    log('Validation enrichment: Contract Data not available — Vendor/Category Group/Category will be blank', 'warn');
+  }
+
+  // --- Map existing Validation columns ---
+  const srcHeaders = validationAoa[0].map(h => String(h ?? '').trim());
+  const srcNorm    = srcHeaders.map(h => norm(h));
+
+  // Find the Zycus Contract Number column in the Validation source (for lookup key)
+  const srcColZycus = srcNorm.findIndex(h => h === 'zycus contract number');
+
+  // Build index map: REQUIRED_HEADER (lowercased) -> source column index
+  // Special: 'vendor', 'category group', 'category' are overridden from Contract Data
+  const OVERRIDE_COLS = new Set(['vendor', 'category group', 'category']);
+
+  const colMap = REQUIRED_HEADERS.map(h => {
+    if (OVERRIDE_COLS.has(norm(h))) return -2; // sentinel: fill from lookup
+    return srcNorm.findIndex(s => s === norm(h));
+  });
+
+  // Log any missing source columns (excluding overrides)
+  REQUIRED_HEADERS.forEach((h, i) => {
+    if (!OVERRIDE_COLS.has(norm(h)) && colMap[i] === -1) {
+      log(`Validation sheet: column "${h}" not found in source — column will be blank`, 'warn');
+    }
+  });
+
+  // --- Build output AoA ---
+  const outAoa = [REQUIRED_HEADERS]; // header row
+
+  for (let ri = 1; ri < validationAoa.length; ri++) {
+    const srcRow = validationAoa[ri];
+    const zycusKey = srcColZycus !== -1 ? norm(srcRow[srcColZycus]) : '';
+    const matched  = lookup.get(zycusKey) || { vendor: '', categoryGroup: '', category: '' };
+
+    const outRow = REQUIRED_HEADERS.map((h, i) => {
+      if (colMap[i] === -2) {
+        // Fill from Contract Data lookup
+        const hn = norm(h);
+        if (hn === 'vendor')         return matched.vendor;
+        if (hn === 'category group') return matched.categoryGroup;
+        if (hn === 'category')       return matched.category;
+        return '';
+      }
+      if (colMap[i] === -1) return ''; // column not found in source
+      return srcRow[colMap[i]] ?? '';
+    });
+    outAoa.push(outRow);
+  }
+
+  log(`Validation sheet rebuilt: ${REQUIRED_HEADERS.length} columns in required order, ${outAoa.length - 1} data rows`, 'ok');
+  return outAoa;
+}
+
+/* ══════════════════════════════════════════════════════
+   INACTIVE PARENT / ACTIVE AMENDMENT SHEET
+══════════════════════════════════════════════════════ */
+function buildInactivParentActiveAmendSheet(workbook, contractAoa) {
+  const SHEET_NAME = 'Inactiv Prnt Activ amendmt';
+
+  if (!contractAoa || contractAoa.length < 2) {
+    const ws = workbook.addWorksheet(SHEET_NAME);
+    ws.addRow(['No Contract Data available']);
+    ws.getRow(1).font = { italic: true, color: { argb: 'FF8DA4C8' } };
+    log(`No Contract Data — <span>${SHEET_NAME}</span> sheet added with placeholder`, 'warn');
+    return 0;
+  }
+
+  const headers = contractAoa[0].map(h => String(h ?? '').trim());
+
+  // Locate required columns (case-insensitive)
+  const hLower = headers.map(h => h.toLowerCase());
+  const colIsAmend = hLower.findIndex(h => h === 'is amendment');
+  const colHnk     = hLower.findIndex(h => h === 'zycus contract number');
+  const colStatus  = hLower.findIndex(h => h === 'status' || h === 'contract status');
+
+  if (colIsAmend === -1) {
+    log(`<span>${SHEET_NAME}</span>: "Is Amendment" column not found in Contract Data — sheet skipped`, 'err');
+    const ws = workbook.addWorksheet(SHEET_NAME);
+    ws.addRow(['"Is Amendment" column not found in Contract Data']);
+    ws.getRow(1).font = { italic: true, color: { argb: 'FFEF4444' } };
+    return 0;
+  }
+  if (colHnk === -1) {
+    log(`<span>${SHEET_NAME}</span>: "Zycus Contract Number" column not found in Contract Data — sheet skipped`, 'err');
+    const ws = workbook.addWorksheet(SHEET_NAME);
+    ws.addRow(['"Zycus Contract Number" column not found in Contract Data']);
+    ws.getRow(1).font = { italic: true, color: { argb: 'FFEF4444' } };
+    return 0;
+  }
+  if (colStatus === -1) {
+    log(`<span>${SHEET_NAME}</span>: Status column not found in Contract Data — sheet skipped`, 'err');
+    const ws = workbook.addWorksheet(SHEET_NAME);
+    ws.addRow(['Status column not found in Contract Data']);
+    ws.getRow(1).font = { italic: true, color: { argb: 'FFEF4444' } };
+    return 0;
+  }
+
+  // Helper: normalise a status value for comparison
+  const normStatus = v => String(v ?? '').trim().toLowerCase();
+  const isInactiveOrExpired = v => { const s = normStatus(v); return s === 'inactive' || s === 'expired'; };
+  const isActive            = v => normStatus(v) === 'active';
+
+  // Step 1: group every data row by HNK number
+  // Map: hnk -> { parents: [], amendments: [] }
+  const groups = new Map();
+  for (let i = 1; i < contractAoa.length; i++) {
+    const row = contractAoa[i];
+    const hnk   = String(row[colHnk] ?? '').trim();
+    const amend = String(row[colIsAmend] ?? '').trim();
+    if (!hnk) continue;
+    if (!groups.has(hnk)) groups.set(hnk, { parents: [], amendments: [] });
+    const g = groups.get(hnk);
+    if (amend === '0') {
+      g.parents.push(row);
+    } else if (amend === '1') {
+      g.amendments.push(row);
+    }
+  }
+
+  // Step 2: collect qualifying groups
+  // Condition: at least one parent is Inactive/Expired AND at least one amendment is Active
+  const qualifyingRows = []; // will hold [parentRow, ...amendmentRows] per group
+  let groupCount = 0;
+
+  for (const [, g] of groups) {
+    const inactiveParents = g.parents.filter(r => isInactiveOrExpired(r[colStatus]));
+    if (inactiveParents.length === 0) continue;
+
+    const activeAmends = g.amendments.filter(r => isActive(r[colStatus]));
+    if (activeAmends.length === 0) continue;
+
+    // Qualifying — include all parents + all amendments for this HNK
+    inactiveParents.forEach(r => qualifyingRows.push(r));
+    g.amendments.forEach(r => qualifyingRows.push(r));
+    groupCount++;
+  }
+
+  // Step 3: build the sheet
+  const ws = workbook.addWorksheet(SHEET_NAME, { state: 'visible', position: { type: 'end' } });
+  ws.addRow(headers);
+  styleHeaderRow(ws);
+
+  qualifyingRows.forEach(r => ws.addRow(r));
+
+  // Column widths — sample from header + data
+  const aoaForWidths = [headers, ...qualifyingRows];
+  headers.forEach((_, i) => { ws.getColumn(i + 1).width = colWidthFromAoa(aoaForWidths, i); });
+
+  if (headers.length > 0 && qualifyingRows.length > 0) {
+    ws.autoFilter = {
+      from: { row: 1, column: 1 },
+      to:   { row: qualifyingRows.length + 1, column: headers.length }
+    };
+  }
+
+  log(`Added <span>${SHEET_NAME}</span> — ${groupCount} HNK group${groupCount === 1 ? '' : 's'}, ${qualifyingRows.length} rows`, 'ok');
+  return qualifyingRows.length;
+}
+
+function applyValidationDropdowns(workbook, ws, headerRow, aoaLength) {
+  const listSheet = workbook.addWorksheet('Lists');
+  listSheet.state = 'hidden';
+  listSheet.getCell('A1').value = 'Currencies Ironclad';
+  CURRENCIES.forEach((c, i) => { listSheet.getCell(`A${i + 2}`).value = c; });
+  listSheet.getCell('B1').value = 'Payment Terms';
+  PAYMENT_TERMS.forEach((p, i) => { listSheet.getCell(`B${i + 2}`).value = p; });
+
+  const lastCurrencyRow = CURRENCIES.length + 1;
+  const lastPaymentRow = PAYMENT_TERMS.length + 1;
+
+  const dataRows = Math.max(aoaLength - 1, 0);
+  const totalValidationRows = Math.min(Math.max(dataRows + 100, 300), 3000);
+
+  let cellsSet = 0;
+  const normalizedHeaders = headerRow.map(h => String(h || '').trim().toLowerCase());
+
+  Object.keys(VALIDATION_DROPDOWN_COLUMNS).forEach(headerKey => {
+    const colIndex = normalizedHeaders.indexOf(headerKey);
+    if (colIndex === -1) {
+      log(`Column "${headerKey}" not found in Validation sheet — dropdown skipped`, 'warn');
+      return;
+    }
+    const cfg = VALIDATION_DROPDOWN_COLUMNS[headerKey];
+    const formula = cfg.list === 'CURRENCIES'
+      ? `Lists!$A$2:$A$${lastCurrencyRow}`
+      : `Lists!$B$2:$B$${lastPaymentRow}`;
+
+    for (let r = 2; r <= totalValidationRows; r++) {
+      const cell = ws.getCell(r, colIndex + 1);
+      cell.dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: [formula],
+        showErrorMessage: true,
+        errorStyle: 'warning',
+        errorTitle: 'Not in list',
+        error: 'Please choose a value from the dropdown list, or leave as X.',
+        showInputMessage: false
+      };
+      cellsSet++;
+    }
+    log(`Dropdown added to <span>${headerRow[colIndex]}</span> (rows 2–${totalValidationRows})`, 'ok');
+  });
+
+  return cellsSet;
+}
+
+function showStats(totalRows, dropdownCells, sizeKB) {
+  const section = document.getElementById('results-section');
+  const strip = document.getElementById('stats-strip');
+  strip.innerHTML = `
+    <div class="stat-card"><span class="stat-val stat-val-green">5</span><span class="stat-key">Sheets created</span></div>
+    <div class="stat-card"><span class="stat-val">${totalRows.toLocaleString()}</span><span class="stat-key">Total data rows</span></div>
+    <div class="stat-card"><span class="stat-val">${dropdownCells.toLocaleString()}</span><span class="stat-key">Dropdown cells added</span></div>
+    <div class="stat-card"><span class="stat-val">${sizeKB} KB</span><span class="stat-key">Output file size</span></div>
+  `;
+  section.style.display = 'block';
+}
+
+document.getElementById('btn-generate').addEventListener('click', generateWorkbook);
+
+log('Ready — upload the 4 Power BI exports to begin', 'info');
+</script>
+</body>
+</html>
